@@ -4,10 +4,14 @@ from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 import matplotlib.pyplot as plt
 from models.linear_model import train_linear_model  # Importing the linear model
+from datetime import datetime
 
 # Télécharger les données boursières d'or (tsy maintsy start='2024-01-01' amin'izay precis tsara)
 def load_data():
-    df = yf.download('GC=F', start='2024-01-01', end='2024-09-30')
+    today = datetime.today().strftime('%Y-%m-%d')
+    print(today)
+    # df = yf.download('GC=F', start='2024-01-01', end='2024-10-19')
+    df = yf.download('GC=F', start='2024-01-01', end=today)
     return df
 
 # Prétraiter les données
