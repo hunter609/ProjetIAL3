@@ -3,65 +3,80 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 import matplotlib.pyplot as plt
-from models.lstm_model import create_and_train_lstm
+from models.linear_model import train_linear_model  # Importing the linear model
 
+# Télécharger les données boursières d'or (tsy maintsy start='2024-01-01' amin'izay precis tsara)
 def load_data():
     df = yf.download('GC=F', start='2024-01-01', end='2024-09-30')
     return df
 
+# Prétraiter les données
 def preprocess_data(df):
     data = df[['Close']].values
     scaler = MinMaxScaler(feature_range=(0, 1))
     scaled_data = scaler.fit_transform(data)
     return scaled_data, scaler
 
-def create_dataset(data, time_step=60):
+# Créer des ensembles de données pour le modèle
+def create_dataset(data, time_step=60, prediction_step=30):
     X, y = [], []
-    for i in range(len(data) - time_step - 1):
+    for i in range(len(data) - time_step - prediction_step):
         X.append(data[i:(i + time_step), 0])
-        y.append(data[i + time_step, 0])
+        y.append(data[i + time_step + prediction_step - 1, 0]) 
     return np.array(X), np.array(y)
-
-def predict_future_prices(model, scaled_data, scaler, days=30):
-    predictions = []
-    last_60_days = scaled_data[-60:]  # Derniers 60 jours
-    last_60_days = last_60_days.reshape((1, 60, 1))
-
-    for _ in range(days):
-        prediction = model.predict(last_60_days)
-        predictions.append(prediction[0][0])
-        
-        # Mettre à jour last_60_days avec la nouvelle prédiction
-        last_60_days = np.concatenate((last_60_days[:, 1:, :], prediction.reshape(1, 1, 1)), axis=1)
-
-    # Inverser la transformation des prévisions
-    return scaler.inverse_transform(np.array(predictions).reshape(-1, 1))
 
 def main():
     df = load_data()
     scaled_data, scaler = preprocess_data(df)
 
+    # Créer les ensembles de données
     time_step = 60
-    X, y = create_dataset(scaled_data, time_step)
-    X = X.reshape(X.shape[0], X.shape[1], 1)
+    prediction_step = 30  # Prédire le prix dans 30 jours (environ 1 mois)
+    X, y = create_dataset(scaled_data, time_step, prediction_step)
+    X_linear = X.reshape(X.shape[0], X.shape[1])  # Reshape for linear model
 
-    model_lstm = create_and_train_lstm(X, y)
+    # Entraîner le modèle linéaire
+    model_linear, _ = train_linear_model(X_linear, y)  # Train linear model
 
-    # Prédire les prix pour le mois suivant
-    future_prices = predict_future_prices(model_lstm, scaled_data, scaler, days=30)
-
-    # Visualiser les résultats
-    plt.figure(figsize=(14, 5))
-    plt.plot(df['Close'], color='blue', label='Prix réel')
+    # Prédire le prix pour les 30 prochains jours
+    last_60_days = scaled_data[-time_step:]  # Derniers 60 jours
+    last_60_days_linear = last_60_days.reshape(1, time_step)  # Prepare input for linear model
     
-    # Ajouter les prévisions futures
-    future_dates = pd.date_range(start=df.index[-1] + pd.Timedelta(days=1), periods=30)
-    plt.plot(future_dates, future_prices, color='green', label='Prévisions pour le mois suivant')
+    predictions_linear = []
+    predicted_prices = []  # List to store predicted prices
     
-    plt.title('Prévisions des Cours des Actions')
-    plt.xlabel('Temps')
-    plt.ylabel('Prix des Actions')
-    plt.legend()
+    for day in range(30):  # Prédire pour chaque jour de 0 à 29
+        prediction_linear = model_linear.predict(last_60_days_linear)
+        predictions_linear.append(prediction_linear[0])  # Store the linear prediction value directly
+        predicted_prices.append(scaler.inverse_transform(prediction_linear.reshape(-1, 1))[0][0])  # Store the actual price prediction
+        last_60_days_linear = np.append(last_60_days_linear[:, 1:], prediction_linear.reshape(1, 1), axis=1)
+
+    predictions_linear = scaler.inverse_transform(np.array(predictions_linear).reshape(-1, 1))
+
+    # Visualisation
+    plt.figure(figsize=(16, 8))
+    plt.plot(df['Close'], color='blue', label='Prix réel', linewidth=2)
+    plt.axvline(x=df.index[-1], color='red', linestyle='--', label='Date de prévision', linewidth=2)
+
+    # Continuer la ligne bleue pour les 30 jours de prévision
+    future_dates = [df.index[-1] + pd.Timedelta(days=i + 1) for i in range(30)]
+    plt.plot(future_dates, predictions_linear, color='purple', label='Prévisions Linéaires dans 30 jours', linewidth=2)  # Nouvelle couleur pour la ligne de prévision linéaire
+
+    # Ajouter le point orange
+    plt.scatter(future_dates, predictions_linear, color='orange', label='Prévisions', s=50)  # Point orange pour les prévisions
+
+    # Afficher les prix prévus avec un peu d'espace pour éviter la superposition
+    for i, price in enumerate(predicted_prices):
+        plt.annotate(f'{price:.2f}', (future_dates[i], predictions_linear[i]), textcoords="offset points", xytext=(0,15), ha='center', fontsize=8, color='orange')
+
+    # Améliorer les axes
+    plt.title('Prévision du Prix de l\'Or', fontsize=16)  # Changed title to reflect gold price prediction
+    plt.xlabel('Temps', fontsize=14)
+    plt.ylabel('Prix des Actions (USD)', fontsize=14)
+    plt.xticks(rotation=45)
+    plt.grid(visible=True, linestyle='--', alpha=0.7)
+    plt.legend(fontsize=12)
+    plt.tight_layout()
     plt.show()
 
 if __name__ == "__main__":

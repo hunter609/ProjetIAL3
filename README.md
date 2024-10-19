@@ -1,3 +1,5 @@
+pip install -r requirements.txt rehefa i-install anleh lib
+
 stock_price_prediction/
 │
 ├── data/
