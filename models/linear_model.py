@@ -2,6 +2,8 @@ from sklearn.linear_model import LinearRegression
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
+import os
+import pandas as pd
 
 def train_linear_model(X_train, y_train):
     # Reshape the input data to ensure it is in the correct format
@@ -22,6 +24,17 @@ def train_linear_model(X_train, y_train):
     model.fit(X_train, y_train)  # Refit the model on the full training data
     final_predictions = model.predict(X_train)  # Predict on the training data for accuracy
     print(f"Final predicted prices for the training set: {final_predictions.flatten()}")
+    
+    # Save the training data and predictions to the data folder
+    if not os.path.exists('data'):
+        os.makedirs('data')
+    
+    train_data = pd.DataFrame(X_train)
+    train_data['target'] = y_train
+    train_data.to_csv('data/training_data.csv', index=False)
+    
+    predictions_data = pd.DataFrame(final_predictions, columns=['predicted_prices'])
+    predictions_data.to_csv('data/predictions.csv', index=False)
     
     # Return the model and final predictions for further analysis
     return model, final_predictions
