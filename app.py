@@ -10,13 +10,21 @@ from datetime import datetime, timedelta
 import io
 import base64
 import threading
+import sqlite3
 
 app = Flask(__name__)
 CORS(app)
 
-# Stockage simulé du nombre de vues
-view_count_lock = threading.Lock()
-view_count = 0
+# Initialize SQLite database for view count
+def init_db():
+    conn = sqlite3.connect('view_count.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS view_count (count INTEGER)''')
+    c.execute('''INSERT INTO view_count (count) SELECT 0 WHERE NOT EXISTS (SELECT 1 FROM view_count)''')
+    conn.commit()
+    conn.close()
+
+init_db()
 
 # Télécharger les données boursières d'or
 def load_data():
@@ -41,7 +49,6 @@ def create_dataset(data, time_step=60, prediction_step=30):
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    global view_count
     content = request.json
     prediction_step = int(content.get('prediction_step', 30))  # Assurer que c'est un entier
     
@@ -138,16 +145,24 @@ def predict():
     plot_url = base64.b64encode(img.getvalue()).decode()
 
     # Increment view count
-    with view_count_lock:
-        view_count += 1
+    conn = sqlite3.connect('view_count.db')
+    c = conn.cursor()
+    c.execute('''UPDATE view_count SET count = count + 1''')
+    conn.commit()
+    c.execute('''SELECT count FROM view_count''')
+    view_count = c.fetchone()[0]
+    conn.close()
 
     return jsonify({'plot_url': plot_url, 'view_count': view_count})
 
 @app.route('/view-count', methods=['GET'])
 def get_view_count():
-    global view_count
-    with view_count_lock:
-        return jsonify({'view_count': view_count})
+    conn = sqlite3.connect('view_count.db')
+    c = conn.cursor()
+    c.execute('''SELECT count FROM view_count''')
+    view_count = c.fetchone()[0]
+    conn.close()
+    return jsonify({'view_count': view_count})
 
 if __name__ == "__main__":
     app.run(debug=True)

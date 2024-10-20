@@ -6,3 +6,4 @@ scikit-learn
 tensorflow
 flask
 flask-cors
+sqlite3
