@@ -1,3 +1,5 @@
+Aza adino ny mi-creer branche a , genre features_mamy , features_lalarijaona
+
 pip install -r requirements.txt rehefa i-install anleh lib
 
 stock_price_prediction/
