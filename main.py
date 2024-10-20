@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 def load_data():
     today = datetime.today().strftime('%Y-%m-%d')
     print(today)
-    df = yf.download('GC=F', start='2019-01-01', end='2024-09-20')
+    df = yf.download('GC=F', start='2019-01-01', end=today)
     return df
 
 # Prétraiter les données
