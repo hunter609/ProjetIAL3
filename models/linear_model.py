@@ -42,5 +42,20 @@ def train_linear_model(X_train, y_train, start_date, end_date):
     predictions_data = pd.DataFrame(final_predictions, columns=['predicted_prices'])
     predictions_data.to_csv('data/predictions.csv', index=False)
     
-    # Return the model and final predictions for further analysis
-    return model, final_predictions
+    # Prepare data to send to the front-end
+    plot_data = {
+        'x': list(range(len(final_predictions))),
+        'y': final_predictions.flatten().tolist(),
+        'type': 'scatter',
+        'mode': 'lines+markers',
+        'marker': {'color': 'red'},
+    }
+    
+    plot_layout = {
+        'title': 'Linear Model Predictions',
+        'xaxis': {'title': 'Days'},
+        'yaxis': {'title': 'Predicted Prices'},
+    }
+    
+    # Return the model, final predictions, plot data, and plot layout for further analysis
+    return model, final_predictions, plot_data, plot_layout

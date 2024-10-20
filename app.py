@@ -66,7 +66,7 @@ def predict():
     X_linear = X.reshape(X.shape[0], X.shape[1])  # Reshape pour le modèle linéaire
 
     # Entraîner le modèle linéaire
-    model_linear, _ = train_linear_model(X_linear, y, start_date, end_date)  # Passer start_date et end_date
+    model_linear, final_predictions, plot_data, plot_layout = train_linear_model(X_linear, y, start_date, end_date)  # Ajuster le déballage
 
     # Prédire le prix pour les prochains jours
     last_60_days = scaled_data[-time_step:]  # Derniers 60 jours
@@ -143,11 +143,43 @@ def predict():
     plt.legend(fontsize=12)
     plt.tight_layout()
 
-    # Convert plot to PNG image
+     # Convert plot to PNG image
     img = io.BytesIO()
     plt.savefig(img, format='png')
     img.seek(0)
+    
     plot_url = base64.b64encode(img.getvalue()).decode()
+    # Convert plot to data for front-end
+    plot_data = {
+        'plot_data': [
+            {
+                'x': df.index.tolist() + future_dates,
+                'y': df['Close'].tolist() + predictions_linear.flatten().tolist(),
+                'type': 'scatter',
+                'mode': 'lines+markers',
+                'name': 'Prix réel et prévisions'
+            }
+        ],
+        'plot_layout': {
+            'title': 'Prévision du Prix de l\'Or',
+            'xaxis': {'title': 'Temps'},
+            'yaxis': {'title': 'Prix des Actions (USD)'},
+            'shapes': [
+                {
+                    'type': 'line',
+                    'x0': df.index[-1],
+                    'y0': min(df['Close']),
+                    'x1': df.index[-1],
+                    'y1': max(df['Close']),
+                    'line': {
+                        'color': 'red',
+                        'width': 2,
+                        'dash': 'dashdot',
+                    },
+                }
+            ]
+        }
+    }
 
     # Increment view count
     conn = sqlite3.connect('view_count.db')
@@ -158,7 +190,7 @@ def predict():
     view_count = c.fetchone()[0]
     conn.close()
 
-    return jsonify({'plot_url': plot_url, 'view_count': view_count})
+    return jsonify({'plot_url': plot_url, 'plot_data': plot_data['plot_data'], 'plot_layout': plot_data['plot_layout'], 'view_count': view_count})
 
 @app.route('/view-count', methods=['GET'])
 def get_view_count():
