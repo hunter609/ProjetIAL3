@@ -10,8 +10,8 @@ from datetime import datetime
 def load_data():
     today = datetime.today().strftime('%Y-%m-%d')
     print(today)
-    # df = yf.download('GC=F', start='2024-01-01', end='2024-10-19')
-    df = yf.download('GC=F', start='2024-01-01', end=today)
+    df = yf.download('GC=F', start='2019-01-01', end='2024-10-20')
+    # df = yf.download('GC=F', start='2024-01-01', end=today)
     return df
 
 # Prétraiter les données
@@ -67,11 +67,40 @@ def main():
     plt.plot(future_dates, predictions_linear, color='purple', label='Prévisions Linéaires dans 30 jours', linewidth=2)  # Nouvelle couleur pour la ligne de prévision linéaire
 
     # Ajouter le point orange
-    plt.scatter(future_dates, predictions_linear, color='orange', label='Prévisions', s=50)  # Point orange pour les prévisions
+    scatter = plt.scatter(future_dates, predictions_linear, color='orange', label='Prévisions', s=20)  # Point orange pour les prévisions
 
     # Afficher les prix prévus avec un peu d'espace pour éviter la superposition
     for i, price in enumerate(predicted_prices):
-        plt.annotate(f'{price:.2f}', (future_dates[i], predictions_linear[i]), textcoords="offset points", xytext=(0,15), ha='center', fontsize=8, color='orange')
+        if i == len(predicted_prices) - 1:
+            plt.annotate(f'{price:.2f}', (future_dates[i], predictions_linear[i]), textcoords="offset points", xytext=(0,15), ha='center', fontsize=8, color='orange')
+
+    # Fonction pour afficher le prix prédit au survol
+    annot = plt.annotate("", xy=(0,0), xytext=(10,10), textcoords="offset points",
+                         bbox=dict(boxstyle="round", fc="w"),
+                         arrowprops=dict(arrowstyle="->"))
+    annot.set_visible(False)
+
+    def update_annot(ind):
+        pos = scatter.get_offsets()[ind["ind"][0]]
+        annot.xy = pos
+        text = f'{predicted_prices[ind["ind"][0]]:.2f}'
+        annot.set_text(text)
+        annot.get_bbox_patch().set_alpha(0.4)
+
+    def hover(event):
+        vis = annot.get_visible()
+        if event.inaxes == plt.gca():
+            cont, ind = scatter.contains(event)
+            if cont:
+                update_annot(ind)
+                annot.set_visible(True)
+                plt.draw()
+            else:
+                if vis:
+                    annot.set_visible(False)
+                    plt.draw()
+
+    plt.gcf().canvas.mpl_connect("motion_notify_event", hover)
 
     # Améliorer les axes
     plt.title('Prévision du Prix de l\'Or', fontsize=16)  # Changed title to reflect gold price prediction
