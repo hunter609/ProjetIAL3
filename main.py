@@ -34,21 +34,21 @@ def main():
 
     # Créer les ensembles de données
     time_step = 60
-    prediction_step = 30  # Prédire le prix dans 30 jours (environ 1 mois)
+    prediction_step = int(input("Entrez la durée de prédiction en jours (ex: 1, 7, 30, 60): "))  # Demander à l'utilisateur la durée de prédiction
     X, y = create_dataset(scaled_data, time_step, prediction_step)
     X_linear = X.reshape(X.shape[0], X.shape[1])  # Reshape pour le modèle linéaire
 
     # Entraîner le modèle linéaire
     model_linear, _ = train_linear_model(X_linear, y)
 
-    # Prédire le prix pour les 30 prochains jours
+    # Prédire le prix pour les prochains jours
     last_60_days = scaled_data[-time_step:]  # Derniers 60 jours
     last_60_days_linear = last_60_days.reshape(1, time_step)  # Préparer l'entrée pour le modèle linéaire
     
     predictions_linear = []
     predicted_prices = []  # Liste pour stocker les prix prédits
     
-    for day in range(30):  # Prédire pour chaque jour de 0 à 29
+    for day in range(prediction_step):  # Prédire pour chaque jour de 0 à prediction_step-1
         prediction_linear = model_linear.predict(last_60_days_linear)
         predictions_linear.append(prediction_linear[0])  # Stocker la valeur de prédiction linéaire directement
         predicted_prices.append(scaler.inverse_transform(prediction_linear.reshape(-1, 1))[0][0])  # Stocker la prédiction de prix réelle
@@ -61,15 +61,15 @@ def main():
     plt.plot(df['Close'], color='blue', label='Prix réel', linewidth=2)
     plt.axvline(x=df.index[-1], color='red', linestyle='--', label='Date de prévision', linewidth=2)
 
-    # Continuer la ligne bleue pour les 30 jours de prévision
+    # Continuer la ligne bleue pour les jours de prévision
     future_dates = []
     current_date = df.index[-1]
-    while len(future_dates) < 30:
+    while len(future_dates) < prediction_step:
         current_date += timedelta(days=1)
         if current_date.weekday() < 5:  # Exclude Saturdays and Sundays
             future_dates.append(current_date)
     
-    plt.plot(future_dates, predictions_linear, color='purple', label='Prévisions Linéaires dans 30 jours', linewidth=2)
+    plt.plot(future_dates, predictions_linear, color='purple', label=f'Prévisions Linéaires dans {prediction_step} jours', linewidth=2)
 
     # Ajouter le point orange
     scatter = plt.scatter(future_dates, predictions_linear, color='orange', label='Prévisions', s=20)
