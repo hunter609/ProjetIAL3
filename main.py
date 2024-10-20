@@ -4,13 +4,13 @@ from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 import matplotlib.pyplot as plt
 from models.linear_model import train_linear_model  # Importer le modèle linéaire
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Télécharger les données boursières d'or
 def load_data():
     today = datetime.today().strftime('%Y-%m-%d')
     print(today)
-    df = yf.download('GC=F', start='2024-01-01', end=today)
+    df = yf.download('GC=F', start='2019-01-01', end='2024-09-20')
     return df
 
 # Prétraiter les données
@@ -62,7 +62,13 @@ def main():
     plt.axvline(x=df.index[-1], color='red', linestyle='--', label='Date de prévision', linewidth=2)
 
     # Continuer la ligne bleue pour les 30 jours de prévision
-    future_dates = [df.index[-1] + pd.Timedelta(days=i + 1) for i in range(30)]
+    future_dates = []
+    current_date = df.index[-1]
+    while len(future_dates) < 30:
+        current_date += timedelta(days=1)
+        if current_date.weekday() < 5:  # Exclude Saturdays and Sundays
+            future_dates.append(current_date)
+    
     plt.plot(future_dates, predictions_linear, color='purple', label='Prévisions Linéaires dans 30 jours', linewidth=2)
 
     # Ajouter le point orange
