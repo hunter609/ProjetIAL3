@@ -1,5 +1,7 @@
 Aza adino ny mi-creer branche a , genre features_mamy , features_lalarijaona
 
+De ny changement rehetra dia alefa any am branch beta_version fa tsy branch main
+
 pip install -r requirements.txt rehefa i-install anleh lib
 
 stock_price_prediction/
