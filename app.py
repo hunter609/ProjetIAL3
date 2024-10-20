@@ -9,11 +9,13 @@ from models.linear_model import train_linear_model
 from datetime import datetime, timedelta
 import io
 import base64
+import threading
 
 app = Flask(__name__)
 CORS(app)
 
 # Stockage simulé du nombre de vues
+view_count_lock = threading.Lock()
 view_count = 0
 
 # Télécharger les données boursières d'or
@@ -136,14 +138,16 @@ def predict():
     plot_url = base64.b64encode(img.getvalue()).decode()
 
     # Increment view count
-    view_count += 1
+    with view_count_lock:
+        view_count += 1
 
     return jsonify({'plot_url': plot_url, 'view_count': view_count})
 
 @app.route('/view-count', methods=['GET'])
 def get_view_count():
     global view_count
-    return jsonify({'view_count': view_count})
+    with view_count_lock:
+        return jsonify({'view_count': view_count})
 
 if __name__ == "__main__":
     app.run(debug=True)
