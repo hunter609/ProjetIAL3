@@ -10,8 +10,8 @@ from datetime import datetime
 def load_data():
     today = datetime.today().strftime('%Y-%m-%d')
     print(today)
-    df = yf.download('GC=F', start='2019-01-01', end='2024-10-20')
-    # df = yf.download('GC=F', start='2024-01-01', end=today)
+    # df = yf.download('GC=F', start='2024-01-01', end='2024-10-20')
+    df = yf.download('GC=F', start='2024-01-01', end=today)
     return df
 
 # Prétraiter les données
@@ -83,7 +83,7 @@ def main():
     def update_annot(ind):
         pos = scatter.get_offsets()[ind["ind"][0]]
         annot.xy = pos
-        text = f'{predicted_prices[ind["ind"][0]]:.2f}'
+        text = f'{predicted_prices[ind["ind"][0]]:.2f}\n{future_dates[ind["ind"][0]].strftime("%Y-%m-%d")}'
         annot.set_text(text)
         annot.get_bbox_patch().set_alpha(0.4)
 
