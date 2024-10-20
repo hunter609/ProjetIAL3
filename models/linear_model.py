@@ -4,8 +4,14 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 import os
 import pandas as pd
+from datetime import datetime
 
-def train_linear_model(X_train, y_train):
+def train_linear_model(X_train, y_train, start_date, end_date):
+    # Check if the end date is greater than today
+    today = datetime.today().strftime('%Y-%m-%d')
+    if end_date > today:
+        raise ValueError("La date de fin ne peut pas dépasser la date d'aujourd'hui.")
+    
     # Reshape the input data to ensure it is in the correct format
     X_train = X_train.reshape(X_train.shape[0], -1)
     

@@ -27,9 +27,8 @@ def init_db():
 init_db()
 
 # Télécharger les données boursières d'or
-def load_data():
-    today = datetime.today().strftime('%Y-%m-%d')
-    df = yf.download('GC=F', start='2019-01-01', end=today)
+def load_data(start_date, end_date):
+    df = yf.download('GC=F', start=start_date, end=end_date)
     return df
 
 # Prétraiter les données
@@ -51,8 +50,14 @@ def create_dataset(data, time_step=60, prediction_step=30):
 def predict():
     content = request.json
     prediction_step = int(content.get('prediction_step', 30))  # Assurer que c'est un entier
+    start_date = content.get('start_date', '2019-01-01')
+    end_date = content.get('end_date', datetime.today().strftime('%Y-%m-%d'))
+
+    # Vérifier si la date de fin dépasse aujourd'hui
+    if datetime.strptime(end_date, '%Y-%m-%d') > datetime.today():
+        return jsonify({'error': 'La date de fin ne peut pas dépasser la date d\'aujourd\'hui.'}), 400
     
-    df = load_data()
+    df = load_data(start_date, end_date)
     scaled_data, scaler = preprocess_data(df)
 
     # Créer les ensembles de données
@@ -61,7 +66,7 @@ def predict():
     X_linear = X.reshape(X.shape[0], X.shape[1])  # Reshape pour le modèle linéaire
 
     # Entraîner le modèle linéaire
-    model_linear, _ = train_linear_model(X_linear, y)
+    model_linear, _ = train_linear_model(X_linear, y, start_date, end_date)  # Passer start_date et end_date
 
     # Prédire le prix pour les prochains jours
     last_60_days = scaled_data[-time_step:]  # Derniers 60 jours
