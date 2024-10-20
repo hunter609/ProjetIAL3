@@ -1,3 +1,5 @@
+git branch -b beta_version https://github.com/hunter609/ProjetIAL3.git (rehefa maka an'ilay project fa amin'io ny akambana ny fonctionnalité aloha)
+
 Aza adino ny mi-creer branche a , genre features_mamy , features_lalarijaona
 
 pip install -r requirements.txt rehefa i-install anleh lib
