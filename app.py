@@ -13,6 +13,9 @@ import base64
 app = Flask(__name__)
 CORS(app)
 
+# Stockage simulé du nombre de vues
+view_count = 0
+
 # Télécharger les données boursières d'or
 def load_data():
     today = datetime.today().strftime('%Y-%m-%d')
@@ -36,8 +39,9 @@ def create_dataset(data, time_step=60, prediction_step=30):
 
 @app.route('/predict', methods=['POST'])
 def predict():
+    global view_count
     content = request.json
-    prediction_step = int(content.get('prediction_step', 30))  # Ensure it's an integer
+    prediction_step = int(content.get('prediction_step', 30))  # Assurer que c'est un entier
     
     df = load_data()
     scaled_data, scaler = preprocess_data(df)
@@ -131,7 +135,15 @@ def predict():
     img.seek(0)
     plot_url = base64.b64encode(img.getvalue()).decode()
 
-    return jsonify({'plot_url': plot_url})
+    # Increment view count
+    view_count += 1
+
+    return jsonify({'plot_url': plot_url, 'view_count': view_count})
+
+@app.route('/view-count', methods=['GET'])
+def get_view_count():
+    global view_count
+    return jsonify({'view_count': view_count})
 
 if __name__ == "__main__":
     app.run(debug=True)
