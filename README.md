@@ -1,4 +1,4 @@
-git branch -b beta_version https://github.com/hunter609/ProjetIAL3.git (rehefa maka an'ilay project fa amin'io ny akambana ny fonctionnalité aloha)
+git clone -b backend_flask https://github.com/hunter609/ProjetIAL3.git (rehefa maka an'ilay backend ao am branche io fa ny branch main mbola tsy a jour sy fonctionnel)
 
 Aza adino ny mi-creer branche a , genre features_mamy , features_lalarijaona
 
