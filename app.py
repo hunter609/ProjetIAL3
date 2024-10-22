@@ -13,7 +13,7 @@ import threading
 import sqlite3
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})  # Allow all origins
 
 # Initialize SQLite database for view count
 def init_db():
