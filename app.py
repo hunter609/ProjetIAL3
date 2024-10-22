@@ -153,8 +153,8 @@ def predict():
     plot_data = {
         'plot_data': [
             {
-                'x': df.index.tolist() + future_dates,
-                'y': df['Close'].tolist() + predictions_linear.flatten().tolist(),
+                'x': df.index.to_list() + [date.strftime('%Y-%m-%d') for date in future_dates],
+                'y': df['Close'].to_list() + predictions_linear.flatten().tolist(),
                 'type': 'scatter',
                 'mode': 'lines+markers',
                 'name': 'Prix réel et prévisions'
