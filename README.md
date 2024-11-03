@@ -1,4 +1,5 @@
-Team AVATECH : 	- RABESON Mamy Nirina - 300I22
+Team AVATECH : 	
+		- RABESON Mamy Nirina - 300I22
 		- RAMAMONJIARISOA Mihaingo Andiniaina - 232I22
 		- RATSIMBAZAFY Lalarijaona Ambinintsoa - 288I22
 
