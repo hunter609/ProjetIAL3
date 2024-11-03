@@ -1,16 +1,34 @@
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import yfinance as yf
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 import matplotlib.pyplot as plt
-from models.linear_model import train_linear_model  # Importer le modèle linéaire
+from models.linear_model import train_linear_model
 from datetime import datetime, timedelta
+import io
+import base64
+import threading
+import sqlite3
+
+app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "*"}})  # Allow all origins
+
+# Initialize SQLite database for view count
+def init_db():
+    conn = sqlite3.connect('view_count.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS view_count (count INTEGER)''')
+    c.execute('''INSERT INTO view_count (count) SELECT 0 WHERE NOT EXISTS (SELECT 1 FROM view_count)''')
+    conn.commit()
+    conn.close()
+
+init_db()
 
 # Télécharger les données boursières d'or
-def load_data():
-    today = datetime.today().strftime('%Y-%m-%d')
-    print(today)
-    df = yf.download('GC=F', start='2019-01-01', end='2024-09-20')
+def load_data(start_date, end_date):
+    df = yf.download('GC=F', start=start_date, end=end_date)
     return df
 
 # Prétraiter les données
@@ -28,27 +46,36 @@ def create_dataset(data, time_step=60, prediction_step=30):
         y.append(data[i + time_step + prediction_step - 1, 0]) 
     return np.array(X), np.array(y)
 
-def main():
-    df = load_data()
+@app.route('/predict', methods=['POST'])
+def predict():
+    content = request.json
+    prediction_step = int(content.get('prediction_step', 30))  # Assurer que c'est un entier
+    start_date = content.get('start_date', '2019-01-01')
+    end_date = content.get('end_date', datetime.today().strftime('%Y-%m-%d'))
+
+    # Vérifier si la date de fin dépasse aujourd'hui
+    if datetime.strptime(end_date, '%Y-%m-%d') > datetime.today():
+        return jsonify({'error': 'La date de fin ne peut pas dépasser la date d\'aujourd\'hui.'}), 400
+    
+    df = load_data(start_date, end_date)
     scaled_data, scaler = preprocess_data(df)
 
     # Créer les ensembles de données
     time_step = 60
-    prediction_step = 30  # Prédire le prix dans 30 jours (environ 1 mois)
     X, y = create_dataset(scaled_data, time_step, prediction_step)
     X_linear = X.reshape(X.shape[0], X.shape[1])  # Reshape pour le modèle linéaire
 
     # Entraîner le modèle linéaire
-    model_linear, _ = train_linear_model(X_linear, y)
+    model_linear, final_predictions, plot_data, plot_layout = train_linear_model(X_linear, y, start_date, end_date)  # Ajuster le déballage
 
-    # Prédire le prix pour les 30 prochains jours
+    # Prédire le prix pour les prochains jours
     last_60_days = scaled_data[-time_step:]  # Derniers 60 jours
     last_60_days_linear = last_60_days.reshape(1, time_step)  # Préparer l'entrée pour le modèle linéaire
     
     predictions_linear = []
     predicted_prices = []  # Liste pour stocker les prix prédits
     
-    for day in range(30):  # Prédire pour chaque jour de 0 à 29
+    for day in range(prediction_step):  # Prédire pour chaque jour de 0 à prediction_step-1
         prediction_linear = model_linear.predict(last_60_days_linear)
         predictions_linear.append(prediction_linear[0])  # Stocker la valeur de prédiction linéaire directement
         predicted_prices.append(scaler.inverse_transform(prediction_linear.reshape(-1, 1))[0][0])  # Stocker la prédiction de prix réelle
@@ -61,15 +88,15 @@ def main():
     plt.plot(df['Close'], color='blue', label='Prix réel', linewidth=2)
     plt.axvline(x=df.index[-1], color='red', linestyle='--', label='Date de prévision', linewidth=2)
 
-    # Continuer la ligne bleue pour les 30 jours de prévision
+    # Continuer la ligne bleue pour les jours de prévision
     future_dates = []
     current_date = df.index[-1]
-    while len(future_dates) < 30:
+    while len(future_dates) < prediction_step:
         current_date += timedelta(days=1)
         if current_date.weekday() < 5:  # Exclude Saturdays and Sundays
             future_dates.append(current_date)
     
-    plt.plot(future_dates, predictions_linear, color='purple', label='Prévisions Linéaires dans 30 jours', linewidth=2)
+    plt.plot(future_dates, predictions_linear, color='purple', label=f'Prévisions Linéaires dans {prediction_step} jours', linewidth=2)
 
     # Ajouter le point orange
     scatter = plt.scatter(future_dates, predictions_linear, color='orange', label='Prévisions', s=20)
@@ -115,7 +142,64 @@ def main():
     plt.grid(visible=True, linestyle='--', alpha=0.7)
     plt.legend(fontsize=12)
     plt.tight_layout()
-    plt.show()
+
+     # Convert plot to PNG image
+    img = io.BytesIO()
+    plt.savefig(img, format='png')
+    img.seek(0)
+    
+    plot_url = base64.b64encode(img.getvalue()).decode()
+    # Convert plot to data for front-end
+    plot_data = {
+        'plot_data': [
+            {
+                'x': df.index.tolist() + future_dates,
+                'y': df['Close'].tolist() + predictions_linear.flatten().tolist(),
+                'type': 'scatter',
+                'mode': 'lines+markers',
+                'name': 'Prix réel et prévisions'
+            }
+        ],
+        'plot_layout': {
+            'title': 'Prévision du Prix de l\'Or',
+            'xaxis': {'title': 'Temps'},
+            'yaxis': {'title': 'Prix des Actions (USD)'},
+            'shapes': [
+                {
+                    'type': 'line',
+                    'x0': df.index[-1],
+                    'y0': min(df['Close']),
+                    'x1': df.index[-1],
+                    'y1': max(df['Close']),
+                    'line': {
+                        'color': 'red',
+                        'width': 2,
+                        'dash': 'dashdot',
+                    },
+                }
+            ]
+        }
+    }
+
+    # Increment view count
+    conn = sqlite3.connect('view_count.db')
+    c = conn.cursor()
+    c.execute('''UPDATE view_count SET count = count + 1''')
+    conn.commit()
+    c.execute('''SELECT count FROM view_count''')
+    view_count = c.fetchone()[0]
+    conn.close()
+
+    return jsonify({'plot_url': plot_url, 'plot_data': plot_data['plot_data'], 'plot_layout': plot_data['plot_layout'], 'view_count': view_count})
+
+@app.route('/view-count', methods=['GET'])
+def get_view_count():
+    conn = sqlite3.connect('view_count.db')
+    c = conn.cursor()
+    c.execute('''SELECT count FROM view_count''')
+    view_count = c.fetchone()[0]
+    conn.close()
+    return jsonify({'view_count': view_count})
 
 if __name__ == "__main__":
-    main()
+    app.run(debug=True)

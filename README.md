@@ -1,8 +1,4 @@
-					Team AVATECH
-A.INSTALLATION
-	1. Clonez le : 
-		- back-end depuis : git clone -b backend_fixed https://github.com/hunter609/ProjetIAL3.git
-		- front-end depuis : git clone https://github.com/hunter609/ProjetIAL3Front.git
+Le fichier app.py est le script principal pour exécuter le projet.
 
 	2. Naviguez vers le repertoire où se situe le Front-End du projet
 		a. Ouvrez cmd sur ce repertoire
