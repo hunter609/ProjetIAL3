@@ -1,4 +1,11 @@
-Le fichier app.py est le script principal pour exécuter le projet.
+Team AVATECH : 	- RABESON Mamy Nirina - 300I22
+		- RAMAMONJIARISOA Mihaingo Andiniaina - 232I22
+		- RATSIMBAZAFY Lalarijaona Ambinintsoa - 288I22
+
+A.INSTALLATION
+	1. Clonez le : 
+		- back-end depuis : git clone -b backend_fixed https://github.com/hunter609/ProjetIAL3.git
+		- front-end depuis : git clone https://github.com/hunter609/ProjetIAL3Front.git
 
 	2. Naviguez vers le repertoire où se situe le Front-End du projet
 		a. Ouvrez cmd sur ce repertoire
