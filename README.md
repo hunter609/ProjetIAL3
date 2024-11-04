@@ -1,7 +1,9 @@
 Team AVATECH : 	
 		- RABESON Mamy Nirina - 300I22
+  		- RAHARISOA SHANIA Lan-Mei-Kune - 017I22
 		- RAMAMONJIARISOA Mihaingo Andiniaina - 232I22
 		- RATSIMBAZAFY Lalarijaona Ambinintsoa - 288I22
+  
 
 A.INSTALLATION
 	1. Clonez le : 
